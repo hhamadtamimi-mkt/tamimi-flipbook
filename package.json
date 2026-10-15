@@ -1,0 +1,12 @@
+{
+  "name": "tamimi-flipbook",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mobile-friendly Tamimi Markets flipbook",
+  "scripts": {
+    "start": "python3 -m http.server 5173"
+  },
+  "dependencies": {
+    "page-flip": "2.0.7"
+  }
+}

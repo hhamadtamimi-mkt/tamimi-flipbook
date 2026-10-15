@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#141414" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>Tamimi Markets</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preload" as="image" href="pages/page-01.webp" />
+  </head>
+  <body class="is-booting">
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div class="brand-text">
+          <strong>Tamimi Markets</strong>
+        </div>
+      </div>
+      <button type="button" id="zoom-btn" aria-label="Zoom in on this page">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.25" />
+          <path d="M15.2 15.2 20 20" />
+          <path d="M10.5 8v5M8 10.5h5" />
+        </svg>
+      </button>
+    </header>
+
+    <main id="stage">
+      <div id="sizer">
+        <div id="book"></div>
+      </div>
+    </main>
+
+    <footer class="bottombar">
+      <button type="button" id="prev" aria-label="Previous page">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14.5 5.5 8 12l6.5 6.5" />
+        </svg>
+      </button>
+      <div class="scrub">
+        <label class="page-label" id="page-label" for="scrub">1 / 17</label>
+        <input
+          id="scrub"
+          type="range"
+          min="1"
+          max="17"
+          value="1"
+          aria-valuemin="1"
+          aria-valuemax="17"
+          aria-label="Jump to page"
+        />
+      </div>
+      <button type="button" id="next" aria-label="Next page">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9.5 5.5 16 12l-6.5 6.5" />
+        </svg>
+      </button>
+    </footer>
+
+    <div id="viewer" hidden>
+      <div id="viewer-stage">
+        <img id="viewer-img" alt="" draggable="false" />
+      </div>
+      <div class="viewer-bar">
+        <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+        <span id="zoom-level">100%</span>
+        <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" id="zoom-close">Close</button>
+      </div>
+      <p class="viewer-hint">Pinch or double-tap to zoom. Drag to pan.</p>
+    </div>
+
+    <div class="boot" role="status">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Opening the savings guide…</p>
+    </div>
+
+    <script src="vendor/page-flip.browser.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
