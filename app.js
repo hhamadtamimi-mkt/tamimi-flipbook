@@ -84,8 +84,199 @@ pageFlip = new St.PageFlip(book, {
   disableFlipByClick: false,
 });
 
+const pageZoom = {
+  scale: 1,
+  panX: 0,
+  panY: 0,
+};
+
+const finger = {
+  pinching: false,
+  startDist: 0,
+  startScale: 1,
+  startX: 0,
+  startY: 0,
+  lastX: 0,
+  lastY: 0,
+  moved: false,
+  startTime: 0,
+};
+
+function applyPageZoom() {
+  const { scale, panX, panY } = pageZoom;
+  sizer.style.transform = scale === 1 ? "" : `translate(${panX}px, ${panY}px) scale(${scale})`;
+}
+
+function clampPagePan() {
+  if (pageZoom.scale <= 1) {
+    pageZoom.scale = 1;
+    pageZoom.panX = 0;
+    pageZoom.panY = 0;
+    return;
+  }
+  const maxX = ((pageZoom.scale - 1) * sizer.offsetWidth) / 2;
+  const maxY = ((pageZoom.scale - 1) * sizer.offsetHeight) / 2;
+  pageZoom.panX = Math.min(maxX, Math.max(-maxX, pageZoom.panX));
+  pageZoom.panY = Math.min(maxY, Math.max(-maxY, pageZoom.panY));
+}
+
+function zoomPageAt(nextScale, clientX, clientY) {
+  const rect = sizer.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2 - pageZoom.panX;
+  const cy = rect.top + rect.height / 2 - pageZoom.panY;
+  const scale = Math.min(4, Math.max(1, nextScale));
+  const localX = cx + (clientX - cx - pageZoom.panX) / pageZoom.scale;
+  const localY = cy + (clientY - cy - pageZoom.panY) / pageZoom.scale;
+  pageZoom.scale = scale;
+  pageZoom.panX = clientX - cx - (localX - cx) * scale;
+  pageZoom.panY = clientY - cy - (localY - cy) * scale;
+  clampPagePan();
+  applyPageZoom();
+}
+
+function resetPageZoom() {
+  if (pageZoom.scale === 1 && pageZoom.panX === 0 && pageZoom.panY === 0) return;
+  pageZoom.scale = 1;
+  pageZoom.panX = 0;
+  pageZoom.panY = 0;
+  finger.pinching = false;
+  finger.startDist = 0;
+  applyPageZoom();
+}
+
+function isPageZoomed() {
+  return pageZoom.scale > 1.02;
+}
+
+function touchDistance(touches) {
+  return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+}
+
+function touchMidpoint(touches) {
+  return {
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2,
+  };
+}
+
+function clearLibraryTouch() {
+  if (pageFlip && pageFlip.ui) pageFlip.ui.touchPoint = null;
+}
+
+book.addEventListener("touchstart", (event) => {
+  if (event.touches.length >= 2) {
+    finger.pinching = true;
+    finger.startDist = touchDistance(event.touches);
+    finger.startScale = pageZoom.scale;
+    clearLibraryTouch();
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  const touch = event.touches[0];
+  finger.startX = touch.clientX;
+  finger.startY = touch.clientY;
+  finger.lastX = touch.clientX;
+  finger.lastY = touch.clientY;
+  finger.moved = false;
+  finger.startTime = Date.now();
+
+  if (isPageZoomed()) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, { capture: true, passive: false });
+
+book.addEventListener("touchmove", (event) => {
+  if (event.touches.length >= 2) {
+    finger.pinching = true;
+    clearLibraryTouch();
+    const dist = touchDistance(event.touches);
+    if (!finger.startDist) {
+      finger.startDist = dist;
+      finger.startScale = pageZoom.scale;
+    }
+    const mid = touchMidpoint(event.touches);
+    zoomPageAt(finger.startScale * (dist / finger.startDist), mid.x, mid.y);
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  const touch = event.touches[0];
+  if (!touch) return;
+
+  if (isPageZoomed()) {
+    pageZoom.panX += touch.clientX - finger.lastX;
+    pageZoom.panY += touch.clientY - finger.lastY;
+    finger.lastX = touch.clientX;
+    finger.lastY = touch.clientY;
+    clampPagePan();
+    applyPageZoom();
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  if (Math.hypot(touch.clientX - finger.startX, touch.clientY - finger.startY) > 18) {
+    finger.moved = true;
+  }
+}, { capture: true, passive: false });
+
+book.addEventListener("touchend", (event) => {
+  if (finger.pinching || finger.suppressTap || event.touches.length > 0) {
+    clearLibraryTouch();
+    if (finger.pinching && event.touches.length < 2) {
+      finger.pinching = false;
+      finger.startDist = 0;
+      finger.suppressTap = true;
+    }
+    if (event.touches.length === 0) finger.suppressTap = false;
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  if (isPageZoomed()) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  const elapsed = Date.now() - finger.startTime;
+  if (finger.moved || elapsed > 600) return;
+
+  const rect = book.getBoundingClientRect();
+  const x = finger.startX - rect.left;
+  if (x < rect.width / 2) pageFlip.flipPrev();
+  else pageFlip.flipNext();
+}, { capture: true, passive: false });
+
+book.addEventListener("touchcancel", () => {
+  finger.pinching = false;
+  finger.startDist = 0;
+  clearLibraryTouch();
+}, { capture: true });
+
+let lastTouchAt = 0;
+book.addEventListener("touchstart", () => {
+  lastTouchAt = Date.now();
+}, { capture: true, passive: true });
+
+function swallowGhostClick(event) {
+  if (Date.now() - lastTouchAt < 700) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+}
+
+book.addEventListener("mousedown", swallowGhostClick, true);
+window.addEventListener("mouseup", swallowGhostClick, true);
+
 function showPage(index) {
   const page = Math.min(TOTAL - 1, Math.max(0, index));
+  resetPageZoom();
   pageLabel.textContent = `${page + 1} / ${TOTAL}`;
   scrub.value = String(page + 1);
   scrub.setAttribute("aria-valuenow", String(page + 1));
@@ -105,6 +296,9 @@ pageFlip.on("flip", (event) => {
 
 pageFlip.loadFromHTML(document.querySelectorAll(".page"));
 layoutBook();
+// A finger tap ends before the library starts a fold, so it never turns the page.
+// Keep swipes working, and turn the page ourselves when the finger barely moves.
+if (pageFlip.ui) pageFlip.ui.swipeTimeout = 4000;
 
 prevBtn.addEventListener("click", () => pageFlip.flipPrev());
 nextBtn.addEventListener("click", () => pageFlip.flipNext());
@@ -275,6 +469,7 @@ viewerStage.addEventListener("pointerup", endPointer);
 viewerStage.addEventListener("pointercancel", endPointer);
 
 window.addEventListener("resize", () => {
+  resetPageZoom();
   layoutBook();
   if (!viewer.hidden) layoutViewer();
 });

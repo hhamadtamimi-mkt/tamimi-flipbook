@@ -148,10 +148,13 @@ button:disabled {
   width: min(100%, calc((100dvh - 168px) * var(--page-w) / var(--page-h)));
   max-height: 100%;
   filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.45));
+  transform-origin: center center;
+  touch-action: none;
 }
 
 #book {
   width: 100%;
+  touch-action: none;
 }
 
 .page {
@@ -341,6 +344,12 @@ body:not(.is-booting) .boot {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (pointer: coarse) {
+  #zoom-btn {
+    display: none;
   }
 }
 
