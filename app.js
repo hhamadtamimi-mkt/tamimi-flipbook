@@ -1,4 +1,4 @@
-const TOTAL = 17;
+const TOTAL = 15;
 const PAGE_W = 1323;
 const PAGE_H = 1819;
 
